@@ -9,6 +9,7 @@ TAMANHO = 20
 GRAVIDADE = 0.2
 PULO = -5
 FUNDO_VX = 1
+OBSTACULO_VX = 2
 
 
 class Jogo:
@@ -48,6 +49,18 @@ class Jogador(pygame.sprite.Sprite):
     def pula(self):
         self.vy = PULO
 
+class Obstaculo(pygame.sprite.Sprite):
+    def __init__(self, centro_x, centro_y):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.image.load('assets/obstaculo.png')
+        self.rect = self.image.get_rect()
+        self.rect.x = centro_x - self.image.get_width() / 2
+        self.rect.y = centro_y - self.image.get_height() / 2
+
+    def update(self):
+        self.rect.x -= OBSTACULO_VX
+
 def eventos(jogo, jogador):
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
@@ -56,19 +69,22 @@ def eventos(jogo, jogador):
             if evento.key == pygame.K_SPACE:
                 jogador.pula()
 
-def atualiza(jogo, jogador_group):
+def atualiza(jogo, jogador_group, obstaculos_group):
     jogo.fundo_x -= FUNDO_VX
     fundo_x_direita = jogo.fundo_x + jogo.fundo.get_width()
     if fundo_x_direita < 0:
         jogo.fundo_x = fundo_x_direita
     jogador_group.update()
+    obstaculos_group.update()
 
-def desenha(jogo, jogador_group):
+def desenha(jogo, jogador_group, obstaculos_group):
     jogo.tela.blit(jogo.fundo, (jogo.fundo_x, 0))
     jogo.tela.blit(jogo.fundo, (jogo.fundo_x + jogo.fundo.get_width(), 0))
 
     # Pinta os elementos do grupo de jogadores na tela auxiliar.
     jogador_group.draw(jogo.tela)
+    # Pinta os elementos do grupo de obstáculos na tela auxiliar.
+    obstaculos_group.draw(jogo.tela)
 
     # Troca de tela na janela principal.
     pygame.display.update()
@@ -82,9 +98,13 @@ jogador = Jogador(20, jogo.altura / 2, jogo)
 jogador_group = pygame.sprite.Group()
 jogador_group.add(jogador)
 
+obstaculo = Obstaculo(jogo.largura, jogo.altura / 2)
+obstaculos_group = pygame.sprite.Group()
+obstaculos_group.add(obstaculo)
+
 while(jogo.rodando):
     eventos(jogo, jogador)
-    atualiza(jogo, jogador_group)
-    desenha(jogo, jogador_group)
+    atualiza(jogo, jogador_group, obstaculos_group)
+    desenha(jogo, jogador_group, obstaculos_group)
 
 pygame.quit()

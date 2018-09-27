@@ -22,6 +22,7 @@ class Jogo:
         largura_fundo = int(self.fundo.get_width() * self.altura / self.fundo.get_height())
         self.fundo = pygame.transform.scale(self.fundo, (largura_fundo, self.altura))
         self.fundo_x = 0
+        self.game_over = False
 
 class Jogador(pygame.sprite.Sprite):
     def __init__(self, x, y, jogo):
@@ -29,6 +30,7 @@ class Jogador(pygame.sprite.Sprite):
 
         self.image = pygame.image.load('assets/raposa.png')
         self.image = pygame.transform.scale(self.image, (40, 35))
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -54,12 +56,16 @@ class Obstaculo(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.image.load('assets/obstaculo.png')
+        self.mask = pygame.mask.from_surface(self.image)
         self.rect = self.image.get_rect()
         self.rect.x = centro_x - self.image.get_width() / 2
         self.rect.y = centro_y - self.image.get_height() / 2
 
     def update(self):
         self.rect.x -= OBSTACULO_VX
+        if self.rect.x + self.image.get_width() < 0:
+            print('Killing')
+            self.kill()
 
 def eventos(jogo, jogador):
     for evento in pygame.event.get():
@@ -69,13 +75,16 @@ def eventos(jogo, jogador):
             if evento.key == pygame.K_SPACE:
                 jogador.pula()
 
-def atualiza(jogo, jogador_group, obstaculos_group):
+def atualiza(jogo, jogador, obstaculos_group):
     jogo.fundo_x -= FUNDO_VX
     fundo_x_direita = jogo.fundo_x + jogo.fundo.get_width()
     if fundo_x_direita < 0:
         jogo.fundo_x = fundo_x_direita
-    jogador_group.update()
+    jogador.update()
     obstaculos_group.update()
+    colisoes = pygame.sprite.spritecollide(jogador, obstaculos_group, False, pygame.sprite.collide_mask)
+    if len(colisoes) > 0:
+        jogo.game_over = True
 
 def desenha(jogo, jogador_group, obstaculos_group):
     jogo.tela.blit(jogo.fundo, (jogo.fundo_x, 0))
@@ -88,6 +97,11 @@ def desenha(jogo, jogador_group, obstaculos_group):
 
     # Troca de tela na janela principal.
     pygame.display.update()
+
+def eventos_gameover(jogo):
+    for evento in pygame.event.get():
+        if evento.type == pygame.QUIT:
+            jogo.rodando = False
 
 pygame.init()
 rodando = True
@@ -102,9 +116,12 @@ obstaculo = Obstaculo(jogo.largura, jogo.altura / 2)
 obstaculos_group = pygame.sprite.Group()
 obstaculos_group.add(obstaculo)
 
-while(jogo.rodando):
+while jogo.rodando and not jogo.game_over:
     eventos(jogo, jogador)
-    atualiza(jogo, jogador_group, obstaculos_group)
+    atualiza(jogo, jogador, obstaculos_group)
     desenha(jogo, jogador_group, obstaculos_group)
+
+while jogo.rodando and jogo.game_over:
+    eventos_gameover(jogo)
 
 pygame.quit()
